@@ -1,0 +1,48 @@
+# Node / package
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Local env files
+.env
+.env.*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Caches
+.cache/
+.vite/
+.parcel-cache/
+
+# Coverage
+coverage/
+
+# AWS creds
+.aws/
+
+# Temporary
+*.tmp
+*.temp
