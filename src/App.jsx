@@ -3,20 +3,28 @@ import Navbar from './components/Navbar'
 import LeftPanel from './components/LeftPanel'
 import RightPanel from './components/RightPanel'
 import TradePanel from './components/TradePanel'
-import CityBackground from './components/CityBackground'
+import DashboardPanel from './components/DashboardPanel'
+import LoginPanel from './components/LoginPanel'
+import { useAuth } from './providers/AuthProvider'
 
-export default function App(){
+export default function App() {
+  const { user } = useAuth()
+
   return (
-    <div className="app-root neon-bg">
+    <div className="app-root soft-finance-bg">
       <Navbar />
-      <div className="layout">
-        <LeftPanel />
-        <CityBackground />
-        <main className="main-area">
-          <TradePanel />
-        </main>
-        <RightPanel />
-      </div>
+      {!user ? (
+        <LoginPanel />
+      ) : (
+        <div className="layout">
+          <LeftPanel />
+          <main className="main-area dashboard-stack">
+            <DashboardPanel />
+            <TradePanel />
+          </main>
+          <RightPanel />
+        </div>
+      )}
     </div>
   )
 }
