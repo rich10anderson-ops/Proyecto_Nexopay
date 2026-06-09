@@ -4,13 +4,16 @@ import App from './App'
 import './index.css'
 import { CurrencyProvider } from './providers/CurrencyProvider'
 import { AuthProvider } from './providers/AuthProvider'
+import { AlertProvider } from './providers/AlertProvider'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AuthProvider>
-      <CurrencyProvider>
-        <App />
-      </CurrencyProvider>
-    </AuthProvider>
+    <AlertProvider>
+      <AuthProvider>
+        <CurrencyProvider>
+          <App />
+        </CurrencyProvider>
+      </AuthProvider>
+    </AlertProvider>
   </React.StrictMode>
 )
