@@ -19,6 +19,7 @@ Variables de entorno (ver `.env.example`):
 Servicios sugeridos:
 - Datos de mercado: CoinGecko (gratuito) — ya usado en `src/services/api.js`.
 - Mensajería / notificaciones: AWS SNS / SES para alertas.
+ - Fondo animado premium: se integró una escena Three.js personalizada en `src/components/CityBackground.jsx` que simula una ciudad en movimiento con luces y edificios (requiere `three` en dependencias).
 
 Estructura principal creada:
 
