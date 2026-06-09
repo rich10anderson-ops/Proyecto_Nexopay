@@ -1,35 +1,43 @@
-import React, { useEffect, useState } from 'react'
-import { fetchTopCurrencies } from '../services/api'
+import React from 'react'
+import { useCurrency } from '../providers/CurrencyProvider'
 
-export default function RightPanel(){
-  const [tickers,setTickers]=useState([])
-  useEffect(()=>{
-    let mounted=true
-    fetchTopCurrencies().then(d=>{ if(mounted) setTickers(d.slice(0,10))})
-    const id=setInterval(()=>fetchTopCurrencies().then(d=>{ if(mounted) setTickers(d.slice(0,10)) }), 15000)
-    return ()=>{mounted=false;clearInterval(id)}
-  },[])
+export default function RightPanel() {
+  const { currencies } = useCurrency()
+  const tickers = currencies.slice(0, 8)
 
   return (
     <aside className="right-panel">
-      <div className="currency-feed">
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div className="small">Mercados en vivo</div>
-          <div className="small">Actualiza cada 15s</div>
+      <div className="currency-feed" style={{ width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span className="live-indicator"></span>
+            <span className="small" style={{ fontWeight: 800 }}>Mercados en vivo</span>
+          </div>
+          <span className="badge">Live</span>
         </div>
-        <div style={{marginTop:8}}>
-          {tickers.map(t=> (
-            <div key={t.id} style={{display:'flex',justifyContent:'space-between',padding:'6px 0'}}>
-              <div>
-                <div style={{fontWeight:700}}>{t.symbol.toUpperCase()}</div>
-                <div className="small">{t.name}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {tickers.map((ticker) => {
+            const changeVal = ticker.price_change_percentage_24h || 0
+            const changeColor = changeVal >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'
+            const priceDisplay = ticker.current_price >= 1
+              ? ticker.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+              : ticker.current_price.toFixed(5)
+
+            return (
+              <div key={ticker.id} className="market-row">
+                <div>
+                  <div style={{ fontWeight: 850, fontSize: '13.5px' }}>{ticker.symbol.toUpperCase()}</div>
+                  <div className="small" style={{ fontSize: '11px' }}>{ticker.name}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div className="neon-text-price">${priceDisplay}</div>
+                  <div style={{ fontSize: '11px', color: changeColor, fontWeight: 800 }}>
+                    {changeVal >= 0 ? '+' : ''}{changeVal.toFixed(2)}%
+                  </div>
+                </div>
               </div>
-              <div style={{textAlign:'right'}}>
-                <div className="neon-text">${t.current_price.toLocaleString()}</div>
-                <div className="small">{t.price_change_percentage_24h?.toFixed(2)}%</div>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </aside>
