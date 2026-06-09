@@ -1,34 +1,72 @@
-# NEXOPAY Frontend
+# NEXOPAY
 
-Frontend React (Vite) orientado a una experiencia futurista "street" con neon y grafitis. Esta rama contiene el frontend funcional listo para configurar variables de AWS y desplegar.
+Frontend React + Vite para NEXOPAY, con dashboard autenticado, login con Google, simulador de mercados, subida de documentos por S3 presigned URL y envio de email por AWS SES.
 
-Instalación rápida:
+## Desarrollo Local
 
 ```bash
 npm install
 npm run dev
 ```
 
-Variables de entorno (ver `.env.example`):
+La app queda disponible en `http://localhost:5173`.
 
-- `VITE_AWS_REGION` — región AWS
-- `VITE_AWS_SNS_ARN` — ARN para mensajería (opcional)
-- `VITE_API_BASE` — API propia
-- `VITE_COINGECKO_BASE` — opcional para datos de mercado
+En Windows, si PowerShell bloquea `npm.ps1`, usa:
 
-Servicios sugeridos:
-- Datos de mercado: CoinGecko (gratuito) — ya usado en `src/services/api.js`.
-- Mensajería / notificaciones: AWS SNS / SES para alertas.
- - Fondo animado premium: se integró una escena Three.js personalizada en `src/components/CityBackground.jsx` que simula una ciudad en movimiento con luces y edificios (requiere `three` en dependencias).
+```powershell
+npm.cmd run dev
+```
 
-Estructura principal creada:
+## Deploy en Vercel
 
-- `src/components` — componentes UI (Navbar, LeftPanel, RightPanel, TradePanel, CurrencyCard)
-- `src/providers` — `CurrencyProvider`, `AuthProvider`
-- `src/hooks` — hooks utilitarios
-- `src/services` — integraciones externas (CoinGecko)
-- `.env.example` — plantilla de variables
+El proyecto ya incluye `vercel.json`.
 
-Listo para producción:
-- Rellenar `.env` con los valores reales.
-- Ejecutar `npm run build` y desplegar el directorio `dist` en su CDN o hosting preferido.
+Configuracion esperada en Vercel:
+
+- Framework preset: `Vite`
+- Build command: `npm run build`
+- Output directory: `dist`
+- Install command: `npm install`
+
+Las rutas serverless quedan en:
+
+- `POST /api/get-presigned-url`
+- `POST /api/send-email`
+
+## Variables de Entorno
+
+Variables publicas del frontend:
+
+```env
+VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+VITE_APP_API_BASE=
+VITE_API_BASE=
+VITE_COINGECKO_BASE=https://api.coingecko.com/api/v3
+```
+
+Variables privadas en Vercel, sin prefijo `VITE_`:
+
+```env
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_S3_BUCKET_NAME=your-private-upload-bucket
+SES_EMAIL=verified-sender@example.com
+ALLOWED_ORIGIN=https://your-vercel-domain.vercel.app
+S3_PRESIGNED_EXPIRES_IN=300
+```
+
+Notas:
+
+- `VITE_APP_API_BASE` puede quedar vacio en Vercel para usar las funciones del mismo dominio.
+- `SES_EMAIL` debe ser un remitente verificado en AWS SES.
+- El bucket S3 debe permitir `PutObject` para el usuario IAM configurado.
+- Para login real con Google, agrega el dominio de Vercel en los origenes autorizados del OAuth Client.
+
+## Verificacion
+
+```bash
+npm run build
+```
+
+El build debe generar `dist/` sin errores.
