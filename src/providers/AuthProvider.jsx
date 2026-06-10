@@ -78,6 +78,7 @@ export function AuthProvider({children}){
       },
       auto_select: false,
       cancel_on_tap_outside: true,
+      use_fedcm: true,
     })
   }, [googleReady, googleClientId])
 
@@ -97,11 +98,7 @@ export function AuthProvider({children}){
       loginDemo()
       return
     }
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        loginDemo()
-      }
-    })
+    window.google.accounts.id.prompt()
   }
 
   function loginWithCredentials(email, password, toastCallback) {
