@@ -49,3 +49,6 @@ coverage/
 *.temp
 .vercel
 .env*
+
+# Backend API
+nexopay-api/
