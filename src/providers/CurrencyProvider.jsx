@@ -155,6 +155,67 @@ export function CurrencyProvider({ children }) {
     return true
   }
 
+  function simulateConvert(fromSymbol, toSymbol, amount, toastCallback) {
+    if (!amount || amount <= 0) {
+      toastCallback?.('Por favor, ingresa un monto válido.', 'warning')
+      return false
+    }
+
+    const fromKey = fromSymbol.toUpperCase()
+    const toKey = toSymbol.toUpperCase()
+
+    if (fromKey === toKey) {
+      toastCallback?.('No puedes convertir una moneda a sí misma.', 'warning')
+      return false
+    }
+
+    if ((balances[fromKey] || 0) < amount) {
+      toastCallback?.(`Saldo insuficiente de ${fromKey}.`, 'error')
+      return false
+    }
+
+    const fromCurr = currencies.find((c) => c.symbol.toUpperCase() === fromKey)
+    const toCurr = currencies.find((c) => c.symbol.toUpperCase() === toKey)
+
+    if (!fromCurr || !toCurr) {
+      toastCallback?.('Monedas no disponibles para conversión.', 'error')
+      return false
+    }
+
+    const valueUSD = amount * fromCurr.current_price
+    const targetAmount = valueUSD / toCurr.current_price
+
+    setBalances((current) => ({
+      ...current,
+      [fromKey]: Math.max(0, current[fromKey] - Number(amount)),
+      [toKey]: (current[toKey] || 0) + targetAmount,
+    }))
+
+    toastCallback?.(`Conversión exitosa: ${amount} ${fromKey} convertidos a ${targetAmount.toFixed(targetAmount < 1 ? 4 : 2)} ${toKey}.`, 'success')
+    return true
+  }
+
+  function simulateStaking(symbol, amount, toastCallback) {
+    if (!amount || amount <= 0) {
+      toastCallback?.('Por favor, ingresa un monto válido.', 'warning')
+      return false
+    }
+
+    const key = symbol.toUpperCase()
+    if ((balances[key] || 0) < amount) {
+      toastCallback?.(`Saldo insuficiente de ${key}.`, 'error')
+      return false
+    }
+
+    setBalances((current) => ({
+      ...current,
+      [key]: Math.max(0, current[key] - Number(amount)),
+    }))
+
+    toastCallback?.(`Inversión exitosa: ${amount} ${key} transferidos a tu Bóveda de Ahorro.`, 'success')
+    return true
+  }
+
   useEffect(() => {
     const id = setInterval(() => {
       setBalances((current) => {
@@ -169,7 +230,7 @@ export function CurrencyProvider({ children }) {
   }, [])
 
   return (
-    <CurrencyContext.Provider value={{ currencies, balances, simulateBuy, simulateSell, simulateDeposit }}>
+    <CurrencyContext.Provider value={{ currencies, balances, simulateBuy, simulateSell, simulateDeposit, simulateConvert, simulateStaking }}>
       {children}
     </CurrencyContext.Provider>
   )

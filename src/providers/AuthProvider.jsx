@@ -104,6 +104,62 @@ export function AuthProvider({children}){
     })
   }
 
+  function loginWithCredentials(email, password, toastCallback) {
+    try {
+      const stored = localStorage.getItem('nexopay:accounts')
+      const accounts = stored ? JSON.parse(stored) : []
+      const found = accounts.find((acc) => acc.email.toLowerCase() === email.toLowerCase())
+      
+      if (!found || found.password !== password) {
+        toastCallback?.('Credenciales de acceso incorrectas.', 'error')
+        return false
+      }
+      
+      setUser({
+        id: found.id,
+        name: found.name,
+        email: found.email,
+        provider: 'local',
+        verified: true,
+        signedAt: new Date().toISOString(),
+      })
+      toastCallback?.(`¡Bienvenido de nuevo, ${found.name}!`, 'success')
+      return true
+    } catch (e) {
+      toastCallback?.('Ocurrió un error al iniciar sesión.', 'error')
+      return false
+    }
+  }
+
+  function registerAccount(name, email, password, toastCallback) {
+    try {
+      const stored = localStorage.getItem('nexopay:accounts')
+      const accounts = stored ? JSON.parse(stored) : []
+      const exists = accounts.some((acc) => acc.email.toLowerCase() === email.toLowerCase())
+      
+      if (exists) {
+        toastCallback?.('Ya existe una cuenta con este correo electrónico.', 'warning')
+        return false
+      }
+      
+      const newAcc = {
+        id: Math.random().toString(36).substring(2, 9),
+        name,
+        email,
+        password,
+        createdAt: new Date().toISOString(),
+      }
+      
+      accounts.push(newAcc)
+      localStorage.setItem('nexopay:accounts', JSON.stringify(accounts))
+      toastCallback?.('¡Cuenta creada correctamente! Ya puedes iniciar sesión.', 'success')
+      return true
+    } catch (e) {
+      toastCallback?.('Ocurrió un error al registrar la cuenta.', 'error')
+      return false
+    }
+  }
+
   function renderGoogleButton(container) {
     if (!container || !googleClientId || !window.google?.accounts?.id) return false
     container.innerHTML = ''
@@ -127,6 +183,8 @@ export function AuthProvider({children}){
     user,
     login,
     loginDemo,
+    loginWithCredentials,
+    registerAccount,
     logout,
     renderGoogleButton,
     googleReady,
