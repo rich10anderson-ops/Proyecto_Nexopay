@@ -47,3 +47,8 @@ coverage/
 # Temporary
 *.tmp
 *.temp
+.vercel
+.env*
+
+# Backend API
+nexopay-api/

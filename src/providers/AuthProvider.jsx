@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import axios from 'axios'
 
 const AuthContext = createContext()
 const STORAGE_KEY = 'nexopay:user'
+const TOKEN_KEY = 'nexopay:token'
+const APP_API_BASE = import.meta.env.VITE_APP_API_BASE || 'https://nexopay-api-production.up.railway.app/api'
 
 function decodeJwtPayload(token) {
   try {
@@ -48,6 +51,33 @@ export function AuthProvider({children}){
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
   }, [user])
 
+  // Restore session on mount from JWT
+  useEffect(() => {
+    const token = localStorage.getItem(TOKEN_KEY)
+    if (!token) return
+
+    axios.get(`${APP_API_BASE}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then((res) => {
+      const userData = res.data
+      setUser({
+        id: userData.id,
+        name: userData.full_name,
+        email: userData.email,
+        provider: 'local',
+        verified: true,
+        signedAt: new Date().toISOString(),
+      })
+    })
+    .catch((err) => {
+      console.warn('Sesión de token expirada o inválida.', err.message)
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(STORAGE_KEY)
+      setUser(null)
+    })
+  }, [])
+
   useEffect(() => {
     if (!googleClientId) return
 
@@ -78,6 +108,7 @@ export function AuthProvider({children}){
       },
       auto_select: false,
       cancel_on_tap_outside: true,
+      use_fedcm: true,
     })
   }, [googleReady, googleClientId])
 
@@ -97,11 +128,64 @@ export function AuthProvider({children}){
       loginDemo()
       return
     }
-    window.google.accounts.id.prompt((notification) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        loginDemo()
-      }
-    })
+    window.google.accounts.id.prompt()
+  }
+
+  async function loginWithCredentials(email, password, toastCallback) {
+    try {
+      const res = await axios.post(`${APP_API_BASE}/auth/login`, {
+        email,
+        password
+      })
+
+      const { token, user: userData } = res.data
+      localStorage.setItem(TOKEN_KEY, token)
+
+      setUser({
+        id: userData.id,
+        name: userData.full_name,
+        email: userData.email,
+        provider: 'local',
+        verified: true,
+        signedAt: new Date().toISOString(),
+      })
+
+      toastCallback?.(`¡Bienvenido de nuevo, ${userData.full_name}!`, 'success')
+      return true
+    } catch (e) {
+      const errMsg = e.response?.data?.message || 'Credenciales de acceso incorrectas.'
+      toastCallback?.(errMsg, 'error')
+      return false
+    }
+  }
+
+  async function registerAccount(name, email, password, toastCallback) {
+    try {
+      const res = await axios.post(`${APP_API_BASE}/auth/register`, {
+        full_name: name,
+        email,
+        password
+      })
+
+      const { token, user: userData } = res.data
+      localStorage.setItem(TOKEN_KEY, token)
+
+      setUser({
+        id: userData.id,
+        name: userData.full_name,
+        email: userData.email,
+        provider: 'local',
+        verified: true,
+        signedAt: new Date().toISOString(),
+      })
+
+      toastCallback?.('¡Cuenta creada correctamente! Bienvenido a la familia.', 'success')
+      return true
+    } catch (e) {
+      const errMsg = e.response?.data?.message || 'Ocurrió un error al registrar la cuenta.'
+      toastCallback?.(errMsg, 'error')
+      return false
+    }
   }
 
   function renderGoogleButton(container) {
@@ -120,6 +204,8 @@ export function AuthProvider({children}){
 
   function logout(){
     if (window.google?.accounts?.id) window.google.accounts.id.disableAutoSelect()
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(STORAGE_KEY)
     setUser(null)
   }
 
@@ -127,6 +213,8 @@ export function AuthProvider({children}){
     user,
     login,
     loginDemo,
+    loginWithCredentials,
+    registerAccount,
     logout,
     renderGoogleButton,
     googleReady,

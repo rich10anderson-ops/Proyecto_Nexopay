@@ -11,7 +11,7 @@ const MENU_ITEMS = [
   'Historial',
 ]
 
-export default function LeftPanel() {
+export default function LeftPanel({ activeTab, setActiveTab }) {
   const { balances } = useCurrency()
   const { user } = useAuth()
   const { addAlert } = useAlert()
@@ -19,7 +19,11 @@ export default function LeftPanel() {
   const [collapsed, setCollapsed] = useState(true)
 
   const handleMenuClick = (item) => {
-    addAlert(`${item} listo para conectar con backend.`, 'info')
+    if (setActiveTab) {
+      setActiveTab(item)
+    } else {
+      addAlert(`${item} listo para conectar con backend.`, 'info')
+    }
   }
 
   return (
@@ -57,10 +61,10 @@ export default function LeftPanel() {
       {!collapsed && (
         <>
           <div className="menu-list">
-            {MENU_ITEMS.map((item, index) => (
+            {MENU_ITEMS.map((item) => (
               <button
                 key={item}
-                className={`menu-item-neon ${index === 0 ? 'active' : ''}`}
+                className={`menu-item-neon ${item === activeTab ? 'active' : ''}`}
                 onClick={() => handleMenuClick(item)}
               >
                 {item}

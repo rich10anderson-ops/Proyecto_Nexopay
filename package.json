@@ -7,7 +7,9 @@
     "dev:server": "npm --prefix server run dev",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1065.0",
@@ -17,13 +19,19 @@
     "lottie-react": "^2.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-router-dom": "^7.17.0",
     "three": "^0.164.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^25.9.2",
     "@vitejs/plugin-react": "^4.2.0",
     "concurrently": "^8.0.0",
+    "happy-dom": "^20.10.2",
     "typescript": "^6.0.3",
-    "vite": "^5.0.0"
+    "vite": "^5.0.0",
+    "vitest": "^4.1.8"
   }
 }

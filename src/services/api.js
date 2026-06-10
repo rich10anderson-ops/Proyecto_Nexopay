@@ -5,7 +5,7 @@ import axios from 'axios'
 // 2. If in dev and no VITE_API_BASE, use the Vite proxy '/coingecko' (configured in vite.config.js).
 // 3. Otherwise (production), call the public CoinGecko API directly.
 const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.DEV ? '/coingecko' : (import.meta.env.VITE_COINGECKO_BASE || 'https://api.coingecko.com/api/v3'))
-const APP_API_BASE = import.meta.env.VITE_APP_API_BASE || ''
+const APP_API_BASE = import.meta.env.VITE_APP_API_BASE || 'https://nexopay-api-production.up.railway.app/api'
 
 export async function fetchTopCurrencies(){
   try{
@@ -21,25 +21,25 @@ export async function fetchTopCurrencies(){
 }
 
 export async function requestPresignedUpload(file) {
-  if (import.meta.env.DEV && !APP_API_BASE) {
+  try {
+    const { data } = await axios.post('/api/get-presigned-url', {
+      filename: file.name,
+      filetype: file.type || 'application/octet-stream',
+      filesize: file.size,
+    }, {
+      timeout: 10000,
+    })
+    return data
+  } catch (error) {
+    console.warn('Fallo al obtener URL firmada de S3, usando simulación local:', error?.message || error)
     return {
       isMock: true,
       uploadUrl: '',
       fileUrl: '',
       key: `local/${file.name}`,
-      expiresIn: 0,
+      expiresIn: 300,
     }
   }
-
-  const { data } = await axios.post(`${APP_API_BASE}/api/get-presigned-url`, {
-    filename: file.name,
-    filetype: file.type || 'application/octet-stream',
-    filesize: file.size,
-  }, {
-    timeout: 10000,
-  })
-
-  return data
 }
 
 export async function uploadWithPresignedUrl(file) {

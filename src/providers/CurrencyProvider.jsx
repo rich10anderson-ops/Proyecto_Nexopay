@@ -18,20 +18,41 @@ const FALLBACK_CURRENCIES = [
 ]
 
 export function CurrencyProvider({ children }) {
+  const { user } = useAuth()
+  const userId = user ? user.id : 'demo-user'
+
   const [currencies, setCurrencies] = useState(FALLBACK_CURRENCIES)
-  const [balances, setBalances] = useState({
-    USD: 2500.0,
-    EUR: 500.0,
-    GBP: 0.0,
-    ARS: 150000.0,
-    COP: 0.0,
-    MXN: 0.0,
-    BRL: 0.0,
-    JPY: 0,
-    BTC: 0.05,
-    ETH: 0.8,
-    SOL: 4.5,
-  })
+  const [balances, setBalances] = useState(DEFAULT_BALANCES)
+  const [transactions, setTransactions] = useState(DEFAULT_TRANSACTIONS)
+  const [investments, setInvestments] = useState(DEFAULT_INVESTMENTS)
+
+  // Sincronizar estados con localStorage cuando cambia el usuario
+  useEffect(() => {
+    const storedBalances = localStorage.getItem(`nexopay:balances:${userId}`)
+    const storedTransactions = localStorage.getItem(`nexopay:transactions:${userId}`)
+    const storedInvestments = localStorage.getItem(`nexopay:investments:${userId}`)
+
+    if (storedBalances) {
+      setBalances(JSON.parse(storedBalances))
+    } else {
+      setBalances(DEFAULT_BALANCES)
+      localStorage.setItem(`nexopay:balances:${userId}`, JSON.stringify(DEFAULT_BALANCES))
+    }
+
+    if (storedTransactions) {
+      setTransactions(JSON.parse(storedTransactions))
+    } else {
+      setTransactions(DEFAULT_TRANSACTIONS)
+      localStorage.setItem(`nexopay:transactions:${userId}`, JSON.stringify(DEFAULT_TRANSACTIONS))
+    }
+
+    if (storedInvestments) {
+      setInvestments(JSON.parse(storedInvestments))
+    } else {
+      setInvestments(DEFAULT_INVESTMENTS)
+      localStorage.setItem(`nexopay:investments:${userId}`, JSON.stringify(DEFAULT_INVESTMENTS))
+    }
+  }, [userId])
 
   useEffect(() => {
     let mounted = true
@@ -73,7 +94,7 @@ export function CurrencyProvider({ children }) {
 
   function simulateBuy(symbol, amount, toastCallback) {
     if (!amount || amount <= 0) {
-      toastCallback?.('Por favor, ingresa un monto valido.', 'warning')
+      toastCallback?.('Por favor, ingresa un monto válido.', 'warning')
       return false
     }
 
@@ -85,7 +106,7 @@ export function CurrencyProvider({ children }) {
     }
 
     if (key === 'USD') {
-      toastCallback?.('No puedes comprar dolar con dolar.', 'warning')
+      toastCallback?.('No puedes comprar dólar con dólar.', 'warning')
       return false
     }
 
@@ -95,11 +116,31 @@ export function CurrencyProvider({ children }) {
       return false
     }
 
-    setBalances((current) => ({
-      ...current,
-      USD: Math.max(0, current.USD - costInUSD),
-      [key]: (current[key] || 0) + Number(amount),
-    }))
+    setBalances((current) => {
+      const next = {
+        ...current,
+        USD: Math.max(0, current.USD - costInUSD),
+        [key]: (current[key] || 0) + Number(amount),
+      }
+      localStorage.setItem(`nexopay:balances:${userId}`, JSON.stringify(next))
+      return next
+    })
+
+    setTransactions((current) => {
+      const next = [
+        {
+          id: Date.now(),
+          date: new Date().toLocaleString('es-CO', { hour12: false }).replace(',', ''),
+          symbol: key,
+          amount: Number(amount),
+          type: 'buy',
+          desc: `Comprado con $${costInUSD.toFixed(2)} USD`
+        },
+        ...current
+      ]
+      localStorage.setItem(`nexopay:transactions:${userId}`, JSON.stringify(next))
+      return next
+    })
 
     toastCallback?.(`Compra exitosa: ${amount} ${key} por $${costInUSD.toFixed(2)} USD.`, 'success')
     return true
@@ -107,7 +148,7 @@ export function CurrencyProvider({ children }) {
 
   function simulateSell(symbol, amount, toastCallback) {
     if (!amount || amount <= 0) {
-      toastCallback?.('Por favor, ingresa un monto valido.', 'warning')
+      toastCallback?.('Por favor, ingresa un monto válido.', 'warning')
       return false
     }
 
@@ -119,7 +160,7 @@ export function CurrencyProvider({ children }) {
     }
 
     if (key === 'USD') {
-      toastCallback?.('No puedes vender dolar por dolar.', 'warning')
+      toastCallback?.('No puedes vender dólar por dólar.', 'warning')
       return false
     }
 
@@ -129,11 +170,32 @@ export function CurrencyProvider({ children }) {
     }
 
     const earningsInUSD = amount * targetCurr.current_price
-    setBalances((current) => ({
-      ...current,
-      [key]: Math.max(0, current[key] - Number(amount)),
-      USD: current.USD + earningsInUSD,
-    }))
+    
+    setBalances((current) => {
+      const next = {
+        ...current,
+        [key]: Math.max(0, current[key] - Number(amount)),
+        USD: current.USD + earningsInUSD,
+      }
+      localStorage.setItem(`nexopay:balances:${userId}`, JSON.stringify(next))
+      return next
+    })
+
+    setTransactions((current) => {
+      const next = [
+        {
+          id: Date.now(),
+          date: new Date().toLocaleString('es-CO', { hour12: false }).replace(',', ''),
+          symbol: key,
+          amount: -Number(amount),
+          type: 'sell',
+          desc: `Vendido por $${earningsInUSD.toFixed(2)} USD`
+        },
+        ...current
+      ]
+      localStorage.setItem(`nexopay:transactions:${userId}`, JSON.stringify(next))
+      return next
+    })
 
     toastCallback?.(`Venta exitosa: ${amount} ${key} por $${earningsInUSD.toFixed(2)} USD.`, 'success')
     return true
@@ -141,17 +203,155 @@ export function CurrencyProvider({ children }) {
 
   function simulateDeposit(symbol, amount, toastCallback) {
     if (!amount || amount <= 0) {
-      toastCallback?.('Por favor, ingresa un monto valido.', 'warning')
+      toastCallback?.('Por favor, ingresa un monto válido.', 'warning')
       return false
     }
 
     const key = symbol.toUpperCase()
-    setBalances((current) => ({
-      ...current,
-      [key]: (current[key] || 0) + Number(amount),
-    }))
+    
+    setBalances((current) => {
+      const next = {
+        ...current,
+        [key]: (current[key] || 0) + Number(amount),
+      }
+      localStorage.setItem(`nexopay:balances:${userId}`, JSON.stringify(next))
+      return next
+    })
 
-    toastCallback?.(`Deposito exitoso: ${amount} ${key}.`, 'success')
+    setTransactions((current) => {
+      const next = [
+        {
+          id: Date.now(),
+          date: new Date().toLocaleString('es-CO', { hour12: false }).replace(',', ''),
+          symbol: key,
+          amount: Number(amount),
+          type: 'deposit',
+          desc: `Ingreso de fondos`
+        },
+        ...current
+      ]
+      localStorage.setItem(`nexopay:transactions:${userId}`, JSON.stringify(next))
+      return next
+    })
+
+    toastCallback?.(`Depósito exitoso: ${amount} ${key}.`, 'success')
+    return true
+  }
+
+  function simulateConvert(fromSymbol, toSymbol, amount, toastCallback) {
+    if (!amount || amount <= 0) {
+      toastCallback?.('Por favor, ingresa un monto válido.', 'warning')
+      return false
+    }
+
+    const fromKey = fromSymbol.toUpperCase()
+    const toKey = toSymbol.toUpperCase()
+
+    if (fromKey === toKey) {
+      toastCallback?.('No puedes convertir una moneda a sí misma.', 'warning')
+      return false
+    }
+
+    if ((balances[fromKey] || 0) < amount) {
+      toastCallback?.(`Saldo insuficiente de ${fromKey}.`, 'error')
+      return false
+    }
+
+    const fromCurr = currencies.find((c) => c.symbol.toUpperCase() === fromKey)
+    const toCurr = currencies.find((c) => c.symbol.toUpperCase() === toKey)
+
+    if (!fromCurr || !toCurr) {
+      toastCallback?.('Monedas no disponibles para conversión.', 'error')
+      return false
+    }
+
+    const valueUSD = amount * fromCurr.current_price
+    const targetAmount = valueUSD / toCurr.current_price
+
+    setBalances((current) => {
+      const next = {
+        ...current,
+        [fromKey]: Math.max(0, current[fromKey] - Number(amount)),
+        [toKey]: (current[toKey] || 0) + targetAmount,
+      }
+      localStorage.setItem(`nexopay:balances:${userId}`, JSON.stringify(next))
+      return next
+    })
+
+    setTransactions((current) => {
+      const next = [
+        {
+          id: Date.now(),
+          date: new Date().toLocaleString('es-CO', { hour12: false }).replace(',', ''),
+          symbol: fromKey,
+          amount: -Number(amount),
+          type: 'convert',
+          desc: `Convertido a ${targetAmount.toFixed(targetAmount < 1 ? 4 : 2)} ${toKey}`
+        },
+        ...current
+      ]
+      localStorage.setItem(`nexopay:transactions:${userId}`, JSON.stringify(next))
+      return next
+    })
+
+    toastCallback?.(`Conversión exitosa: ${amount} ${fromKey} convertidos a ${targetAmount.toFixed(targetAmount < 1 ? 4 : 2)} ${toKey}.`, 'success')
+    return true
+  }
+
+  function simulateStaking(symbol, amount, pkgName, apy, toastCallback) {
+    if (!amount || amount <= 0) {
+      toastCallback?.('Por favor, ingresa un monto válido.', 'warning')
+      return false
+    }
+
+    const key = symbol.toUpperCase()
+    if ((balances[key] || 0) < amount) {
+      toastCallback?.(`Saldo insuficiente de ${key}.`, 'error')
+      return false
+    }
+
+    setBalances((current) => {
+      const next = {
+        ...current,
+        [key]: Math.max(0, current[key] - Number(amount)),
+      }
+      localStorage.setItem(`nexopay:balances:${userId}`, JSON.stringify(next))
+      return next
+    })
+
+    setInvestments((current) => {
+      const next = [
+        {
+          id: Date.now(),
+          name: pkgName,
+          symbol: key,
+          amount: Number(amount),
+          apy,
+          date: new Date().toLocaleDateString('es-CO')
+        },
+        ...current
+      ]
+      localStorage.setItem(`nexopay:investments:${userId}`, JSON.stringify(next))
+      return next
+    })
+
+    setTransactions((current) => {
+      const next = [
+        {
+          id: Date.now(),
+          date: new Date().toLocaleString('es-CO', { hour12: false }).replace(',', ''),
+          symbol: key,
+          amount: -Number(amount),
+          type: 'stake',
+          desc: `Inversión en ${pkgName}`
+        },
+        ...current
+      ]
+      localStorage.setItem(`nexopay:transactions:${userId}`, JSON.stringify(next))
+      return next
+    })
+
+    toastCallback?.(`Inversión exitosa: ${amount} ${key} transferidos a tu Bóveda de Ahorro.`, 'success')
     return true
   }
 
@@ -162,14 +362,15 @@ export function CurrencyProvider({ children }) {
         Object.keys(copy).forEach((key) => {
           if (copy[key] > 0) copy[key] = copy[key] * 1.00005
         })
+        localStorage.setItem(`nexopay:balances:${userId}`, JSON.stringify(copy))
         return copy
       })
     }, 60000)
     return () => clearInterval(id)
-  }, [])
+  }, [userId])
 
   return (
-    <CurrencyContext.Provider value={{ currencies, balances, simulateBuy, simulateSell, simulateDeposit }}>
+    <CurrencyContext.Provider value={{ currencies, balances, transactions, investments, simulateBuy, simulateSell, simulateDeposit, simulateConvert, simulateStaking }}>
       {children}
     </CurrencyContext.Provider>
   )
